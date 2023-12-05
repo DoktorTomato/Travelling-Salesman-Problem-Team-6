@@ -8,7 +8,20 @@ def read_file(file_path:str):
     В .csv файлі дані задані у форматі x1,x2,l1, де x1 - перше місто,
     x2 - друге місто, l1 - вага ребра між ними (довжина шляху між містами)
     '''
-    return
+    with open (file_path, 'r', encoding= 'utf-8') as file:
+        content = file.read().splitlines()
+    content = [i.split(',') for i in content]
+
+    new_dict = {}
+    for i in content:
+        if not i[0] in new_dict:
+            new_dict[i[0]] = [tuple((i[1],i[2]))]
+        else:
+            new_dict[i[0]].append(tuple((i[1],i[2])))
+
+    for key, value in new_dict.items():
+        new_dict[key] = [(i[0], int(i[1])) for i in value]
+    return new_dict
 
 def precise_alg():
     '''
