@@ -133,27 +133,48 @@ def precise_alg(graph:dict, start:str | int, dest:str | int, go_through:list, me
             if route[0] == dest:
                 memo[str((start, dest, []))] = route[1]
                 return route[1]
+    elif len(go_through) == 1:
+        try:
+            val1 = memo[str((start, go_through[0], []))]
+        except KeyError:
+            val1 = precise_alg(graph, start, go_through[0], [], memo)
+            if val1 is None:
+                return None
+            elif str(val1).isnumeric():
+                memo[str((dest, go_through[0], []))] = val1
+        try:
+            val2 = memo[str((go_through[0], dest, []))]
+        except KeyError:
+            val2 = precise_alg(graph, go_through[0], dest, [], memo)
+            if val2 is None:
+                return None
+            elif str(val1).isnumeric():
+                memo[str((go_through[0], dest, []))] = val1
+        return val1 + val2
     else:
         routes = []
         for subset in all_subsets(go_through):
-            for ind, city in enumerate(subset):
+            for city in subset:
                 try:
-                    val1 = memo[str((dest, city, []))]
+                    val1 = memo[str((city, dest, []))]
                 except KeyError:
-                    val1 = precise_alg(graph, dest, city, [], memo)
-                    if str(val1).isnumeric():
-                        memo[str((dest, city, []))] = val1
+                    val1 = precise_alg(graph, city, dest, [], memo)
+                    if val1 is None:
+                        continue
+                    memo[str((city, dest, []))] = val1
                 try:
-                    val2 = memo[str((start, city, subset[ind+1:]))]
+                    val2 = memo[str((start, city, [x for x in subset if x != city]))]
                 except KeyError:
-                    val2 = precise_alg(graph, start, city, subset[ind+1:], memo)
-                    if str(val2).isnumeric():
-                        memo[str((start, city, subset))] = val2
+                    val2 = precise_alg(graph, start, city, [x for x in subset if x != city], memo)
+                    if val2 is None:
+                        continue
+                    memo[str((start, city, [x for x in subset if x != city]))] = val2
                 try:
-                    routes.append(val1 + val2)
+                    routes.append(val1+val2)
                 except TypeError:
-                    pass
+                    continues
     if len(routes)>0:
+        print(f'This in memory {memo}')
         return min(routes)
 
 def greedy_alg():
