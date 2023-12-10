@@ -28,13 +28,36 @@ def precise_alg():
     Ця функція вирішує задачу комівояжера точним алгоритмом (Held-Karp algorythm)
     '''
     return
-
-def greedy_alg():
+import random
+def greedy_alg(graph):
     '''
     Ця функція вирішує задачу комівояжера "жадібним" приблизним алгоритмом 
     (Nearest neighbour algorithm)
     '''
-    return
+    path = [] # список, у який будуть додаватися відвідані точки
+
+    start_point = random.choice(list(graph.keys())) # вибір рандомної точки з графу
+    current_point = start_point # позначаємо її як поточну
+    path.append(current_point) # додаємо до списку, як відвідану
+
+    # поки всі точки не будуть відвідані продорвжуємо ітерацію
+    while len(path) < len(graph):
+        # Find the closest unvisited neighbor
+        min_distance = float('inf') # ініціалзуємо мінімальну відстать між точками як нескінченність
+        next_point = None # ініціалізуємо наступну точку як None
+        for neighbor, distance in graph.get(current_point, []): # ітерація через сусідів поточної точки та їх відстані від неї
+            if neighbor not in path and distance < min_distance: # перевірка, чи сусід не є відвіданий і його відстань менша за поточну мінімальну відстань.
+                min_distance = distance # оновлення мінімальної відстанні
+                next_point = neighbor # оновлення наступної точки для поточного сусіда
+
+        if next_point is None: # перевірка чи є сусід, якого ще не відвідали
+            break
+
+        path.append(next_point) # додаємо знайденого сусіда до списку відвіданих точок
+        current_point = next_point # оновлюємо поточну точки
+
+    path.append(start_point) # додаємо початкову точку до списку відвіданих, щрб завершити цикл
+    return path
 
 if __name__ == '__main__':
     import doctest
