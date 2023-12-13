@@ -2,6 +2,7 @@
 В цьому модулі знаходяться функції допомагають та вирішують задачу комівояжера
 '''
 import itertools as it
+from copy import deepcopy
 
 def read_file(file_path:str):
     '''
@@ -80,6 +81,8 @@ def all_subsets(gen_set:set)->list:
 ('b', 'c', 'd', 'e', 'f'), ('b', 'c', 'd', 'e', 'g'), \
 ('b', 'c', 'd', 'f', 'g'), ('b', 'c', 'e', 'f', 'g'), \
 ('b', 'd', 'e', 'f', 'g'), ('c', 'd', 'e', 'f', 'g')]
+    >>> all_subsets(['b', 'c', 'd'])
+    [('b',), ('c',), ('d',), ('b', 'c'), ('b', 'd'), ('c', 'd')]
     '''
     res_lst = []
     for i in range(1, len(gen_set)):
@@ -110,72 +113,62 @@ def ispath(graph:dict, start:str | int, destination:str | int)->bool:
             return True
     return False
 
-def precise_alg(graph:dict, start:str | int, dest:str | int, go_through:list, memo:dict)->list:
+def precise_alg(graph:dict, start:str | int, dest:str | int, go_through:list, memo:dict)->tuple:
     '''
     Ця функція вирішує задачу комівояжера точним алгоритмом (Held-Karp algorythm)
-    Ця функція повертає значення що дорівнює найкоротшому шляху
-    >>> precise_alg({'a': [('b', 12), ('c', 10), ('g', 12)], \
-'b': [('d', 12), ('c', 8), ('a', 12)], 'c': [('b', 8), ('a', 10), \
-('g', 9), ('e', 3), ('d', 11)], 'g': [('a', 12), ('c', 9), ('e', 7), ('f', 9)], \
-'e': [('g', 7), ('c', 3), ('d', 11), ('f', 6)], 'd': [('e', 11), ('b', 12), \
-('c', 11), ('f', 10)], 'f': [('e', 6), ('d', 10), ('g', 9)]}, 'a', 'a', \
-['b', 'c', 'd', 'e', 'f', 'g'], {})
+    Ця функція повертає кортеж значень з яких перше значення це довжина (вага) шляху,
+    а друге сам шлях поданий списком
+    >>> precise_alg({'a': [('b', 2), ('c', 15), ('d', 6)], \
+'b': [('a', 2), ('c', 7), ('d', 3)], \
+'c': [('a', 15), ('b', 7), ('d', 12)], \
+'d': [('a', 6), ('b', 3), ('c', 12)]}, 'a', 'a', \
+['b', 'c', 'd'], {})
+    (27, ['a', 'd', 'c', 'b', 'a'])
+    >>> precise_alg({'a': [('b', 10), ('c', 15), ('d', 20)], 'b': [('a', 10),\
+('c', 35), ('d', 25)], 'c': [('a', 15), ('b', 35), ('d', 30)],\
+'d': [('a', 20), ('b', 25), ('c', 30)]}, 'a', 'a', \
+['b', 'c', 'd'], {})
+    (80, ['a', 'c', 'd', 'b', 'a'])
     '''
-    try:
-        if go_through is None:
-            go_through = []
-    except AttributeError:
-        pass
+    path = []
+    the_way = str((start, dest, go_through))
+    # base case
     if len(go_through) < 1:
-        if not ispath(graph, start, dest):
-            return None
-        for route in graph[start]:
-            if route[0] == dest:
-                memo[str((start, dest, []))] = route[1]
-                return route[1]
-    elif len(go_through) == 1:
         try:
-            val1 = memo[str((start, go_through[0], []))]
+            path.append(start)
+            path.append(dest)
+            return memo[the_way]
         except KeyError:
-            val1 = precise_alg(graph, start, go_through[0], [], memo)
-            if val1 is None:
-                return None
-            elif str(val1).isnumeric():
-                memo[str((dest, go_through[0], []))] = val1
+            path.append(start)
+            path.append(dest)
+            for city in graph[start]:
+                if city[0] == dest:
+                    memo[the_way] = (city[1], path)
+                    return (city[1], path)
+    # general case
+    elif len(go_through) >= 1:
         try:
-            val2 = memo[str((go_through[0], dest, []))]
+            return memo[the_way]
         except KeyError:
-            val2 = precise_alg(graph, go_through[0], dest, [], memo)
-            if val2 is None:
-                return None
-            elif str(val1).isnumeric():
-                memo[str((go_through[0], dest, []))] = val1
-        return val1 + val2
-    else:
-        routes = []
-        for subset in all_subsets(go_through):
-            for city in subset:
-                try:
-                    val1 = memo[str((city, dest, []))]
-                except KeyError:
-                    val1 = precise_alg(graph, city, dest, [], memo)
-                    if val1 is None:
-                        continue
-                    memo[str((city, dest, []))] = val1
-                try:
-                    val2 = memo[str((start, city, [x for x in subset if x != city]))]
-                except KeyError:
-                    val2 = precise_alg(graph, start, city, [x for x in subset if x != city], memo)
-                    if val2 is None:
-                        continue
-                    memo[str((start, city, [x for x in subset if x != city]))] = val2
-                try:
-                    routes.append(val1+val2)
-                except TypeError:
-                    continues
-    if len(routes)>0:
-        print(f'This in memory {memo}')
-        return min(routes)
+            routes = []
+            path = []
+            for city in go_through:
+                val1 = precise_alg(graph, city, dest, [], memo)[0]
+                subset_needed = [x for x in go_through if x != city]
+                val2 = precise_alg(graph, start, city, subset_needed, memo)[0]
+                path.append(start)
+                path.extend(precise_alg(graph, start, city, subset_needed, memo)[1])
+                path.append(city)
+                path_copy = deepcopy(path)
+                path.clear()
+                for el in path_copy:
+                    if path_copy.count(el) >= 1 and el not in path:
+                        path.append(el)
+                path.append(dest)
+                routes.append((val1 + val2, path))
+                path = []
+            routes.sort(key=lambda x: x[0])
+            return routes[0]
 
 def greedy_alg():
     '''
@@ -187,4 +180,3 @@ def greedy_alg():
 if __name__ == '__main__':
     import doctest
     print(doctest.testmod())
-    #тут може бути запуск функцій вручну
